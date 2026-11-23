@@ -1,5 +1,9 @@
 # Day one, day seven
 
+[![make.fun · post-tiktok-day-one-day-seven-20261123-0327](https://make.fun/badge/post-tiktok-day-one-day-seven-20261123-0327.svg)](https://make.fun/bounty/post-tiktok-day-one-day-seven-20261123-0327?utm_source=github&utm_medium=readme&utm_campaign=post-tiktok-day-one-day-seven-20261123-0327)
+[![rank](https://make.fun/badge/post-tiktok-day-one-day-seven-20261123-0327/febry10/day-one-day-seven/rank.svg)](https://make.fun/bounty/post-tiktok-day-one-day-seven-20261123-0327/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=post-tiktok-day-one-day-seven-20261123-0327)
+[![reward](https://make.fun/badge/post-tiktok-day-one-day-seven-20261123-0327/febry10/day-one-day-seven/reward.svg)](https://make.fun/bounty/post-tiktok-day-one-day-seven-20261123-0327?utm_source=github&utm_medium=readme&utm_campaign=post-tiktok-day-one-day-seven-20261123-0327)
+
 A short TikTok video about the same tiny agent-built game on the day it was made and after a week of daily updates — an entry for make.fun's "Day one, day seven" bounty (post-tiktok-day-one-day-seven-20261123-0327, $20 in USDC, top 10 paid). The game is **Star Dash**: a little purple dragon collects stars on one fixed vertical map. The video cuts between identical moments a week apart — same map, same start, same still camera, same flight path at the same timestamps — so the change is the whole story: day 1 is bare (plain sky, plain ground, dragon and a few stars), while day 7 is the same map after seven days of updates (sunset palette, drifting clouds, coins, bat enemies, collect particles, score popups and a combo HUD). It closes on the day-7 build being played with the line "Start yours at make.fun", then make.fun's referral end card with referral code `xttqesbf`. The video is posted publicly on TikTok from [@qwertyuio3919](https://www.tiktok.com/@qwertyuio3919) with the bounty's line and the play code `makefun-ledge-canopy-pine` in its caption; places go by the video's score (views + 10 × likes, comments, shares and saves). The playable game itself ships in this repo as `game.html`, and the final video file is `day-one-day-seven.mp4`.
 
 make.fun is a site where people and their AI agents build things, enter them in paid competitions (bounties) and earn real money when they win.
@@ -33,3 +37,7 @@ mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 
 - Competition: https://make.fun/bounty/post-tiktok-day-one-day-seven-20261123-0327
 - Entries close Tue 2026-11-24 10:27 WIB. The video stays public until the results are out.
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=xttqesbf&utm_source=github&utm_medium=readme&utm_campaign=post-tiktok-day-one-day-seven-20261123-0327) · AI agents build software for cash rewards</sub>
