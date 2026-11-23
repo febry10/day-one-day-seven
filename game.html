@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Star Dash — Day 1 vs Day 7</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #191419; height: 100%; overflow: hidden; }
+  #wrap { position: relative; width: min(100vw, 56.25vh); height: min(100vh, 177.78vw);
+          margin: 0 auto; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #hud { position: absolute; top: 10px; left: 0; right: 0; display: flex;
+         justify-content: space-between; padding: 0 14px; pointer-events: none;
+         font: 700 18px system-ui, sans-serif; color: #fff;
+         text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+  #bar { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;
+         font: 600 14px system-ui, sans-serif; color: #fff;
+         text-shadow: 0 2px 6px rgba(0,0,0,.7); pointer-events: none; }
+  #bar b { background: #c41c83; border-radius: 999px; padding: 4px 12px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="540" height="960"></canvas>
+  <div id="hud"><span id="day">DAY 1</span><span id="score">SCORE 0</span></div>
+  <div id="bar">Arrows / WASD or drag to fly &nbsp;·&nbsp; press <b>7</b> for the Day 7 build</div>
+</div>
+<script>
+"use strict";
+// Star Dash — the tiny game from the "Day one, day seven" video.
+// Same map, same start, same flight path in both builds; Day 7 just has
+// a week of updates layered on: coins, bats, particles, popups, combo HUD.
+const cv = document.getElementById("game"), ctx = cv.getContext("2d");
+const W = 540, H = 960;
+const dayEl = document.getElementById("day"), scoreEl = document.getElementById("score");
+let day = 1, score = 0, combo = 0, t = 0;
+let px = 270, py = 480, vx = 0, vy = 0;           // dragon
+const keys = {};
+let pointer = null;
+const stars = [], coins = [], bats = [], parts = [], pops = [];
+function starPts(cx, cy, ro, ri) {
+  const p = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? ri : ro, a = -Math.PI / 2 + i * Math.PI / 5;
+    p.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return p;
+}
+function poly(pts, fill) {
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (const q of pts.slice(1)) ctx.lineTo(q[0], q[1]);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+}
+// fixed map: same star/coin spots in both builds
+for (let i = 0; i < 6; i++) {
+  stars.push({ x: 60 + i * 84 + (i % 2) * 30, y: 150 + i * 110, got: false });
+  coins.push({ x: 90 + i * 80, y: 210 + i * 105, got: false });
+}
+for (let i = 0; i < 3; i++) bats.push({ x: 120 + i * 160, y: 300 + i * 140, ph: i * 2 });
+function reset() {
+  score = 0; combo = 0;
+  for (const s of stars) s.got = false;
+  for (const c of coins) c.got = false;
+}
+function setDay(n) {
+  day = n; reset();
+  dayEl.textContent = "DAY " + n;
+  dayEl.style.background = n === 7 ? "#c41c83" : "transparent";
+  dayEl.style.borderRadius = "999px"; dayEl.style.padding = "2px 10px";
+}
+addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === "7") setDay(day === 1 ? 7 : 1);
+  if (["arrowup","arrowdown","arrowleft","arrowright"," "].includes(e.key.toLowerCase())) e.preventDefault();
+});
+addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+cv.addEventListener("pointerdown", e => pointer = { x: e.offsetX, y: e.offsetY });
+addEventListener("pointermove", e => {
+  if (!pointer) return;
+  const r = cv.getBoundingClientRect();
+  pointer = { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+});
+addEventListener("pointerup", () => pointer = null);
+
+function drawDragon(x, y, f) {
+  ctx.fillStyle = "#8b5cf6";
+  ctx.beginPath(); ctx.ellipse(x, y, 31, 21, 0, 0, 7); ctx.fill();          // body
+  ctx.fillStyle = "#fde082";
+  ctx.beginPath(); ctx.ellipse(x, y + 14, 20, 12, 0, 0, 7); ctx.fill();     // belly
+  ctx.fillStyle = "#8b5cf6";
+  ctx.beginPath(); ctx.arc(x + 29 * f, y - 14, 21, 0, 7); ctx.fill();       // head
+  ctx.fillStyle = "#a78bfa";
+  ctx.beginPath(); ctx.arc(x + 40 * f, y - 6, 8, 0, 7); ctx.fill();         // snout
+  ctx.fillStyle = "#ffd95c";
+  ctx.beginPath(); ctx.moveTo(x + 20 * f, y - 30); ctx.lineTo(x + 26 * f, y - 48);
+  ctx.lineTo(x + 34 * f, y - 30); ctx.closePath(); ctx.fill();              // horn
+  const flap = Math.sin(t * 9) * 10;
+  ctx.fillStyle = "#c41c83";
+  ctx.beginPath(); ctx.moveTo(x - 5, y - 10); ctx.lineTo(x - 15, y - 34 - flap);
+  ctx.lineTo(x + 28, y - 16); ctx.closePath(); ctx.fill();                  // wing
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(x + 34 * f, y - 18, 5, 0, 7); ctx.fill();        // eye
+  ctx.fillStyle = "#191419";
+  ctx.beginPath(); ctx.arc(x + 35 * f, y - 18, 2.5, 0, 7); ctx.fill();
+}
+function step(dt) {
+  t += dt;
+  const sp = 260;
+  let ax = 0, ay = 0;
+  if (keys.arrowleft || keys.a) ax -= 1;
+  if (keys.arrowright || keys.d) ax += 1;
+  if (keys.arrowup || keys.w) ay -= 1;
+  if (keys.arrowdown || keys.s) ay += 1;
+  if (pointer) { ax = (pointer.x - px) / 40; ay = (pointer.y - py) / 40; }
+  vx += ax * sp * dt * 4; vy += ay * sp * dt * 4;
+  vx *= Math.pow(0.02, dt); vy *= Math.pow(0.02, dt);
+  px = Math.max(40, Math.min(W - 40, px + vx * dt));
+  py = Math.max(90, Math.min(H - 90, py + vy * dt));
+  const f = vx >= 0 ? 1 : -1;
+  for (const s of stars) {
+    if (!s.got && Math.hypot(px - s.x, py - s.y) < 55) {
+      s.got = true; score += 10; combo++;
+      pops.push({ x: s.x, y: s.y, txt: "+10", age: 0 });
+      if (day === 7) for (let i = 0; i < 10; i++)
+        parts.push({ x: s.x, y: s.y, a: i * 0.63, r: 0, age: 0 });
+    }
+  }
+  if (day === 7) for (const c of coins)
+    if (!c.got && Math.hypot(px - c.x, py - c.y) < 50) { c.got = true; score += 5; }
+  for (const b of bats) b.x -= 40 * dt; // bats drift left, wrap around
+  for (const b of bats) if (b.x < -40) b.x = W + 40;
+  for (const p of parts) { p.age += dt; p.r = p.age * 90; }
+  for (const p of pops) p.age += dt;
+  scoreEl.textContent = "SCORE " + score + (day === 7 && combo > 1 ? "  ·  COMBO x" + combo : "");
+  return f;
+}
+function draw(f) {
+  // sky
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  if (day === 1) { g.addColorStop(0, "#1b2a6b"); g.addColorStop(1, "#3a5f9e"); }
+  else { g.addColorStop(0, "#ff9a56"); g.addColorStop(1, "#c41c83"); }
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (day === 7) { // sun + clouds
+    ctx.fillStyle = "#ffd65a";
+    ctx.beginPath(); ctx.arc(440, 150, 55, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    for (const [cx, cy, s] of [[140, 120, 1], [380, 260, 1.3], [100, 420, .8]]) {
+      ctx.beginPath(); ctx.arc(cx, cy, 26 * s, 0, 7); ctx.arc(cx + 26 * s, cy + 6, 20 * s, 0, 7);
+      ctx.arc(cx - 26 * s, cy + 6, 20 * s, 0, 7); ctx.fill();
+    }
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,.6)";
+    for (const [x, y] of [[100, 140], [450, 110], [380, 210], [60, 350], [480, 280]])
+      { ctx.beginPath(); ctx.arc(x, y, 2, 0, 7); ctx.fill(); }
+  }
+  // hills + ground
+  ctx.fillStyle = day === 1 ? "#26463c" : "#7a346e";
+  ctx.beginPath(); ctx.moveTo(0, 780); ctx.lineTo(160, 690); ctx.lineTo(350, 780); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(200, 780); ctx.lineTo(390, 665); ctx.lineTo(540, 780); ctx.fill();
+  ctx.fillStyle = day === 1 ? "#2e5a3e" : "#3a6e46";
+  ctx.fillRect(0, 780, W, H - 780);
+  ctx.fillStyle = day === 1 ? "#468254" : "#60aa60";
+  ctx.fillRect(0, 780, W, 8);
+  // stars / coins / bats
+  for (const s of stars) if (!s.got) {
+    const p = 1 + 0.08 * Math.sin(t * 4 + s.x);
+    poly(starPts(s.x, s.y, 23 * p, 10 * p), "#ffd95c");
+  }
+  if (day === 7) {
+    for (const c of coins) if (!c.got) {
+      ctx.fillStyle = "#ffbe28"; ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ffdc6e"; ctx.beginPath(); ctx.arc(c.x, c.y, 7, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = "#3a1c48";
+    for (const b of bats) {
+      const by = b.y + Math.sin(t * 2 + b.ph) * 15;
+      ctx.beginPath(); ctx.ellipse(b.x, by, 14, 10, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(b.x - 12, by); ctx.lineTo(b.x - 34, by - 12 - Math.sin(t * 12) * 6);
+      ctx.lineTo(b.x - 4, by - 4); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(b.x + 12, by); ctx.lineTo(b.x + 34, by - 12 - Math.sin(t * 12) * 6);
+      ctx.lineTo(b.x + 4, by - 4); ctx.closePath(); ctx.fill();
+    }
+    for (const p of parts) if (p.age < 0.9) {
+      ctx.fillStyle = `rgba(255,217,92,${1 - p.age / 0.9})`;
+      ctx.beginPath(); ctx.arc(p.x + p.r * Math.cos(p.a), p.y + p.r * Math.sin(p.a) * 0.6, 3, 0, 7); ctx.fill();
+    }
+  }
+  drawDragon(px, py, f);
+  for (const p of pops) if (p.age < 0.9) {
+    ctx.font = "700 26px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = `rgba(255,255,255,${1 - p.age / 0.9})`;
+    ctx.fillText(p.txt, p.x, p.y - p.age * 45);
+  }
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const f = step(dt); draw(f);
+  requestAnimationFrame(loop);
+}
+setDay(1);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
